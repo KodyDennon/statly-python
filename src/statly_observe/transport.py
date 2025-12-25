@@ -75,6 +75,7 @@ class HttpTransport(Transport):
 
     def __init__(self, options: TransportOptions):
         self.options = options
+        self.dsn = options.dsn
         self.endpoint = self._parse_dsn(options.dsn)
         self._queue: Queue[dict[str, Any]] = Queue()
         self._shutdown = threading.Event()
@@ -90,22 +91,22 @@ class HttpTransport(Transport):
         Parse DSN and return the endpoint URL.
 
         Args:
-            dsn: The Data Source Name.
+            dsn: The Data Source Name (format: https://<api-key>@statly.live/<org-slug>)
 
         Returns:
             The API endpoint URL.
         """
-        # DSN format: https://observe.statly.live/org-slug
-        # or https://observe.statly.live/org-slug/project-id
         if not dsn:
             raise ValueError("DSN is required")
 
-        # Ensure DSN has /api/v1/events suffix
-        base_url = dsn.rstrip("/")
-        if not base_url.endswith("/api/v1/events"):
-            base_url = f"{base_url}/api/v1/events"
-
-        return base_url
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(dsn)
+            # Construct the ingest endpoint on the same host
+            return f"{parsed.scheme}://{parsed.hostname}/api/v1/observe/ingest"
+        except Exception:
+            # Fallback to default endpoint
+            return "https://statly.live/api/v1/observe/ingest"
 
     def _start_worker(self) -> None:
         """Start the background worker thread."""
@@ -170,6 +171,7 @@ class HttpTransport(Transport):
                     headers={
                         "Content-Type": "application/json",
                         "User-Agent": "statly-observe-python/0.1.0",
+                        "X-Statly-DSN": self.dsn,
                     },
                     timeout=self.options.timeout,
                 )
@@ -267,14 +269,17 @@ class SyncTransport(Transport):
 
     def __init__(self, options: TransportOptions):
         self.options = options
+        self.dsn = options.dsn
         self.endpoint = self._parse_dsn(options.dsn)
 
     def _parse_dsn(self, dsn: str) -> str:
         """Parse DSN and return the endpoint URL."""
-        base_url = dsn.rstrip("/")
-        if not base_url.endswith("/api/v1/events"):
-            base_url = f"{base_url}/api/v1/events"
-        return base_url
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(dsn)
+            return f"{parsed.scheme}://{parsed.hostname}/api/v1/observe/ingest"
+        except Exception:
+            return "https://statly.live/api/v1/observe/ingest"
 
     def send(self, event: dict[str, Any]) -> bool:
         """Send an event synchronously."""
@@ -286,6 +291,7 @@ class SyncTransport(Transport):
                     headers={
                         "Content-Type": "application/json",
                         "User-Agent": "statly-observe-python/0.1.0",
+                        "X-Statly-DSN": self.dsn,
                     },
                     timeout=self.options.timeout,
                 )

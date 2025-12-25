@@ -21,9 +21,9 @@ pip install statly-observe[fastapi]   # FastAPI
 ```python
 from statly_observe import Statly
 
-# Initialize the SDK
+# Initialize the SDK (get your DSN from statly.live/dashboard/observe/setup)
 Statly.init(
-    dsn="https://observe.statly.live/your-org",
+    dsn="https://sk_live_xxx@statly.live/your-org",
     environment="production",
     release="1.0.0",
 )

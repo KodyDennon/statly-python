@@ -37,13 +37,13 @@ class TestStatlyClient:
         """Test client initialization."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             environment="test",
             release="1.0.0",
             transport=transport,
         )
 
-        assert client.dsn == "https://observe.statly.live/test"
+        assert client.dsn == "https://sk_test_xxx@statly.live/test"
         assert client.environment == "test"
         assert client.release == "1.0.0"
 
@@ -51,7 +51,7 @@ class TestStatlyClient:
         """Test capturing an exception."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -69,7 +69,7 @@ class TestStatlyClient:
         """Test capturing a message."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -84,7 +84,7 @@ class TestStatlyClient:
         """Test setting user context."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -99,7 +99,7 @@ class TestStatlyClient:
         """Test setting tags."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -116,7 +116,7 @@ class TestStatlyClient:
         """Test adding breadcrumbs."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -138,7 +138,7 @@ class TestStatlyClient:
         """Test sample rate filtering."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             sample_rate=0.0,  # Drop all events
             transport=transport,
         )
@@ -156,7 +156,7 @@ class TestStatlyClient:
             return event
 
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             before_send=before_send,
             transport=transport,
         )
@@ -174,7 +174,7 @@ class TestStatlyClient:
             return None  # Drop all events
 
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             before_send=before_send,
             transport=transport,
         )
@@ -187,7 +187,7 @@ class TestStatlyClient:
         """Test flushing events."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 
@@ -199,7 +199,7 @@ class TestStatlyClient:
         """Test closing client."""
         transport = MockTransport()
         client = StatlyClient(
-            dsn="https://observe.statly.live/test",
+            dsn="https://sk_test_xxx@statly.live/test",
             transport=transport,
         )
 

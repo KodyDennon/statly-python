@@ -6,7 +6,8 @@ Error tracking and monitoring for Python applications.
 Example:
     >>> from statly_observe import Statly
     >>>
-    >>> Statly.init(dsn="https://observe.statly.live/your-org")
+    >>> # Get your DSN from statly.live/dashboard/observe/setup
+    >>> Statly.init(dsn="https://sk_live_xxx@statly.live/your-org")
     >>>
     >>> # Errors are captured automatically
     >>>
