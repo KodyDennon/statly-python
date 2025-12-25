@@ -1,6 +1,20 @@
 # Statly Observe SDK for Python
 
-Error tracking and monitoring for Python applications.
+[![PyPI version](https://img.shields.io/pypi/v/statly-observe.svg)](https://pypi.org/project/statly-observe/)
+[![Python versions](https://img.shields.io/pypi/pyversions/statly-observe.svg)](https://pypi.org/project/statly-observe/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Error tracking and monitoring for Python applications. Capture exceptions, track releases, and debug issues faster.
+
+## Features
+
+- Automatic exception capturing with full stack traces
+- Breadcrumbs for debugging context
+- User context tracking
+- Release tracking
+- Framework integrations (Flask, Django, FastAPI)
+- Async support
+- Minimal overhead
 
 ## Installation
 
@@ -8,27 +22,34 @@ Error tracking and monitoring for Python applications.
 pip install statly-observe
 ```
 
-For framework-specific integrations:
+With framework integrations:
 
 ```bash
-pip install statly-observe[flask]     # Flask
-pip install statly-observe[django]    # Django
-pip install statly-observe[fastapi]   # FastAPI
+pip install statly-observe[flask]     # Flask support
+pip install statly-observe[django]    # Django support
+pip install statly-observe[fastapi]   # FastAPI/Starlette support
+pip install statly-observe[all]       # All integrations
 ```
+
+## Getting Your DSN
+
+1. Go to [statly.live/dashboard/observe/setup](https://statly.live/dashboard/observe/setup)
+2. Create an API key for Observe
+3. Copy your DSN (format: `https://<api-key>@statly.live/<org-slug>`)
 
 ## Quick Start
 
 ```python
 from statly_observe import Statly
 
-# Initialize the SDK (get your DSN from statly.live/dashboard/observe/setup)
+# Initialize the SDK
 Statly.init(
     dsn="https://sk_live_xxx@statly.live/your-org",
     environment="production",
     release="1.0.0",
 )
 
-# Errors are captured automatically
+# Errors are captured automatically via sys.excepthook
 
 # Manual capture
 try:
@@ -37,153 +58,312 @@ except Exception as e:
     Statly.capture_exception(e)
 
 # Capture a message
-Statly.capture_message("Something happened", level="warning")
+Statly.capture_message("User completed checkout", level="info")
 
 # Set user context
-Statly.set_user(id="user-123", email="user@example.com")
+Statly.set_user(
+    id="user-123",
+    email="user@example.com",
+)
 
-# Add breadcrumb
+# Add breadcrumb for debugging
 Statly.add_breadcrumb(
-    message="User clicked button",
-    category="ui",
+    message="User logged in",
+    category="auth",
     level="info",
 )
 
-# Flush and close before exit
+# Always close before exit
 Statly.close()
 ```
 
-## Flask Integration
+## Framework Integrations
+
+### Flask
 
 ```python
 from flask import Flask
 from statly_observe import Statly
-from statly_observe.integrations import init_flask
+from statly_observe.integrations.flask import init_flask
 
 app = Flask(__name__)
 
-Statly.init(dsn="...")
+# Initialize Statly
+Statly.init(
+    dsn="https://sk_live_xxx@statly.live/your-org",
+    environment="production",
+)
+
+# Attach to Flask app
 init_flask(app)
 
 @app.route("/")
 def index():
     return "Hello World"
+
+@app.route("/error")
+def error():
+    raise ValueError("Test error")  # Automatically captured
 ```
 
-## Django Integration
+### Django
+
+**settings.py:**
 
 ```python
-# settings.py
-MIDDLEWARE = [
-    'statly_observe.integrations.django.StatlyDjangoMiddleware',
-    # ... other middleware
+INSTALLED_APPS = [
+    # ...
+    'statly_observe.integrations.django',
 ]
 
-# wsgi.py or manage.py
-from statly_observe import Statly
-Statly.init(dsn="...")
+MIDDLEWARE = [
+    'statly_observe.integrations.django.StatlyMiddleware',
+    # ... other middleware (Statly should be first)
+]
+
+# Statly configuration
+STATLY_DSN = "https://sk_live_xxx@statly.live/your-org"
+STATLY_ENVIRONMENT = "production"
+STATLY_RELEASE = "1.0.0"
 ```
 
-## FastAPI Integration
+**wsgi.py or manage.py:**
+
+```python
+from statly_observe import Statly
+from django.conf import settings
+
+Statly.init(
+    dsn=settings.STATLY_DSN,
+    environment=settings.STATLY_ENVIRONMENT,
+    release=settings.STATLY_RELEASE,
+)
+```
+
+### FastAPI
 
 ```python
 from fastapi import FastAPI
 from statly_observe import Statly
-from statly_observe.integrations import init_fastapi
+from statly_observe.integrations.fastapi import init_fastapi
 
 app = FastAPI()
 
-Statly.init(dsn="...")
+# Initialize Statly
+Statly.init(
+    dsn="https://sk_live_xxx@statly.live/your-org",
+    environment="production",
+)
+
+# Attach to FastAPI app
 init_fastapi(app)
 
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+@app.get("/error")
+async def error():
+    raise ValueError("Test error")  # Automatically captured
 ```
 
-## Configuration
+### Generic WSGI/ASGI
 
-### Statly.init() Options
+```python
+from statly_observe import Statly
+from statly_observe.integrations.wsgi import StatlyWSGIMiddleware
+from statly_observe.integrations.asgi import StatlyASGIMiddleware
+
+Statly.init(dsn="https://sk_live_xxx@statly.live/your-org")
+
+# WSGI
+app = StatlyWSGIMiddleware(your_wsgi_app)
+
+# ASGI
+app = StatlyASGIMiddleware(your_asgi_app)
+```
+
+## Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `dsn` | `str` | Required | Data Source Name for your project |
-| `environment` | `str` | `None` | Environment name (production, staging, etc.) |
-| `release` | `str` | `None` | Release version of your application |
-| `debug` | `bool` | `False` | Enable debug logging |
+| `dsn` | `str` | **Required** | Your project's Data Source Name |
+| `environment` | `str` | `None` | Environment name (production, staging, development) |
+| `release` | `str` | `None` | Release/version identifier for tracking |
+| `debug` | `bool` | `False` | Enable debug logging to stderr |
 | `sample_rate` | `float` | `1.0` | Sample rate for events (0.0 to 1.0) |
 | `max_breadcrumbs` | `int` | `100` | Maximum breadcrumbs to store |
-| `before_send` | `callable` | `None` | Callback to modify/filter events |
+| `before_send` | `callable` | `None` | Callback to modify/filter events before sending |
 
-### Before Send Callback
+### before_send Example
 
 ```python
 def before_send(event):
-    # Remove sensitive data
-    if "password" in str(event.get("extra", {})):
+    # Filter out specific errors
+    if "KeyboardInterrupt" in event.get("message", ""):
         return None  # Drop the event
+
+    # Scrub sensitive data
+    if "extra" in event and "password" in event["extra"]:
+        del event["extra"]["password"]
+
     return event
 
-Statly.init(dsn="...", before_send=before_send)
-```
-
-## Breadcrumbs
-
-Breadcrumbs are a trail of events that led up to an error:
-
-```python
-# Default breadcrumb
-Statly.add_breadcrumb(message="User logged in")
-
-# With category and data
-Statly.add_breadcrumb(
-    message="Database query",
-    category="query",
-    level="info",
-    data={"query": "SELECT * FROM users", "duration_ms": 15},
+Statly.init(
+    dsn="...",
+    before_send=before_send,
 )
 ```
 
-## User Context
+## API Reference
+
+### Statly.capture_exception(exception, **context)
+
+Capture an exception with optional additional context:
+
+```python
+try:
+    process_payment(order)
+except PaymentError as e:
+    Statly.capture_exception(
+        e,
+        extra={
+            "order_id": order.id,
+            "amount": order.total,
+        },
+        tags={
+            "payment_provider": "stripe",
+        },
+    )
+```
+
+### Statly.capture_message(message, level="info")
+
+Capture a message event:
+
+```python
+Statly.capture_message("User signed up", level="info")
+Statly.capture_message("Payment failed after 3 retries", level="warning")
+Statly.capture_message("Database connection lost", level="error")
+```
+
+Levels: `"debug"` | `"info"` | `"warning"` | `"error"` | `"fatal"`
+
+### Statly.set_user(**kwargs)
+
+Set user context for all subsequent events:
 
 ```python
 Statly.set_user(
     id="user-123",
     email="user@example.com",
     username="johndoe",
-    ip_address="192.168.1.1",  # Additional fields
+    # Custom fields
+    subscription="premium",
 )
+
+# Clear user on logout
+Statly.set_user(None)
 ```
 
-## Tags
+### Statly.set_tag(key, value) / Statly.set_tags(tags)
+
+Set tags for filtering and searching:
 
 ```python
-# Single tag
 Statly.set_tag("version", "1.0.0")
 
-# Multiple tags
 Statly.set_tags({
     "environment": "production",
     "server": "web-1",
+    "region": "us-east-1",
 })
 ```
 
-## WSGI/ASGI Middleware
+### Statly.add_breadcrumb(**kwargs)
 
-For generic WSGI/ASGI applications:
+Add a breadcrumb for debugging context:
+
+```python
+Statly.add_breadcrumb(
+    message="User clicked checkout button",
+    category="ui.click",
+    level="info",
+    data={
+        "button_id": "checkout-btn",
+        "cart_items": 3,
+    },
+)
+```
+
+### Statly.flush() / Statly.close()
+
+```python
+# Flush pending events (keeps SDK running)
+Statly.flush()
+
+# Flush and close (use before process exit)
+Statly.close()
+```
+
+## Context Manager
+
+Use context manager for automatic cleanup:
 
 ```python
 from statly_observe import Statly
-from statly_observe.integrations import StatlyWSGIMiddleware, StatlyASGIMiddleware
 
-# WSGI
-Statly.init(dsn="...")
-app = StatlyWSGIMiddleware(your_wsgi_app)
-
-# ASGI
-Statly.init(dsn="...")
-app = StatlyASGIMiddleware(your_asgi_app)
+with Statly.init(dsn="...") as client:
+    # Your code here
+    pass
+# Automatically flushed and closed
 ```
+
+## Async Support
+
+The SDK automatically detects async contexts:
+
+```python
+import asyncio
+from statly_observe import Statly
+
+async def main():
+    Statly.init(dsn="...")
+
+    try:
+        await risky_async_operation()
+    except Exception as e:
+        Statly.capture_exception(e)
+
+    await Statly.flush_async()
+
+asyncio.run(main())
+```
+
+## Logging Integration
+
+Capture Python logging as breadcrumbs or events:
+
+```python
+import logging
+from statly_observe import Statly
+from statly_observe.integrations.logging import StatlyHandler
+
+Statly.init(dsn="...")
+
+# Add handler to capture logs as breadcrumbs
+handler = StatlyHandler(level=logging.INFO)
+logging.getLogger().addHandler(handler)
+
+# Now logs are captured
+logging.info("User logged in")  # Becomes a breadcrumb
+logging.error("Database error")  # Captured as error event
+```
+
+## Requirements
+
+- Python 3.8+
+- Works with sync and async code
 
 ## License
 
